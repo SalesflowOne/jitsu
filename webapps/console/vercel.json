@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm codegen && pnpm turbo run build-deps && pnpm --filter @jitsu-internal/console build",
+  "ignoreCommand": "bash vercel.sh",
+  "env": {
+    "NODE_OPTIONS": ""
+  },
+  "build": {
+    "env": {
+      "NODE_OPTIONS": ""
+    }
+  }
+}

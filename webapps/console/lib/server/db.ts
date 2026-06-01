@@ -86,7 +86,7 @@ export function createPg(): Pool {
   const connectionUrl = getApplicationDatabaseUrl();
   const parsedUrl = new URL(connectionUrl);
   const schema = parsedUrl.searchParams.get("schema");
-  if (schema !== "newjitsu") {
+  if (schema !== JITSU_DB_SCHEMA) {
     const tBorder = `┌─────────────────────────────────────────────────────────────────────┐`;
     const bBorder = `└─────────────────────────────────────────────────────────────────────┘`;
     const msg = [
@@ -103,7 +103,7 @@ export function createPg(): Pool {
   const pool = new Pool({
     max: 20,
     idleTimeoutMillis: 600000,
-    connectionString: requireDefined(serverEnv.DATABASE_URL, "env.DATABASE_URL is not defined"),
+    connectionString: connectionUrl,
     ssl: sslMode === "no-verify" ? { rejectUnauthorized: false } : undefined,
     application_name: (parsedUrl.searchParams.get("application_name") || "console") + "-raw-pg",
   });
@@ -129,12 +129,34 @@ export function createPg(): Pool {
 
 const mutationActions = ["create", "update", "upsert", "delete"];
 
+const JITSU_DB_SCHEMA = "newjitsu";
+
+/**
+ * Prisma and raw pg expect `?schema=newjitsu`. Shared Postgres URLs copied from
+ * other apps often set `search_path` via `options=` instead — normalize those.
+ */
+export function normalizeJitsuDatabaseUrl(connectionUrl: string): string {
+  const parsed = new URL(connectionUrl);
+  parsed.searchParams.set("schema", JITSU_DB_SCHEMA);
+
+  const options = parsed.searchParams.get("options") || "";
+  if (/search_path/i.test(options)) {
+    parsed.searchParams.delete("options");
+  }
+  if (parsed.searchParams.has("search_path")) {
+    parsed.searchParams.delete("search_path");
+  }
+
+  return parsed.toString();
+}
+
 export function getApplicationDatabaseUrl(): string {
   const serverEnv = getServerEnv();
-  return requireDefined(
+  const raw = requireDefined(
     serverEnv.APP_DATABASE_URL || serverEnv.DATABASE_URL,
     "neither env.DATABASE_URL, nor env.APP_DATABASE_URL is not defined"
   );
+  return normalizeJitsuDatabaseUrl(raw);
 }
 
 export function isUsingPgBouncer() {
