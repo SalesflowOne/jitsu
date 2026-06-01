@@ -73,6 +73,7 @@
     "highlight.js": "^11.11.1",
     "ioredis": "^5.9.2",
     "js-yaml": "^4.1.1",
+    "jsondiffpatch": "workspace:*",
     "json5": "^2.2.3",
     "jsonwebtoken": "^9.0.3",
     "juava": "workspace:*",
