@@ -6,8 +6,8 @@
 if [[ "$VERCEL_GIT_COMMIT_REF" == "functions-cli"  ]]; then
     npx turbo-ignore
 else
-   if [[ "$VERCEL_GIT_COMMIT_REF" != *"newjitsu"*  ]]; then
-      echo "❌ Not a newjitsu branch, skipping deploy"
+   if [[ "$VERCEL_GIT_COMMIT_REF" != *"newjitsu"* && "$VERCEL_GIT_COMMIT_REF" != cursor/* ]]; then
+      echo "❌ Not a newjitsu or cursor/* branch, skipping deploy"
       exit 0
    fi
 
