@@ -18,6 +18,7 @@
     "typecheck:turbo": "turbo run typecheck",
     "typecheck": "pnpm -r run typecheck",
     "console:dev": "pnpm --filter console console:dev",
+    "attribution:dev": "pnpm --filter salesflow-attribution dev",
     "ui:dev": "turbo run console:dev",
     "console:manage": "pnpm --filter console manage",
     "rotor:dev": "pnpm --filter rotor rotor:dev",

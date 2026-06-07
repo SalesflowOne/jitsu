@@ -21,6 +21,7 @@ import HubspotDestination from "./functions/hubspot-destination";
 import BrazeDestination from "./functions/braze-destination";
 import SalesforceDestination from "./functions/salesforce-destination";
 import StatsigDestination from "./functions/statsig-destination";
+import SalesflowAttributionDestination from "./functions/salesflow-attribution-destination";
 
 const builtinDestinations: Record<BuiltinDestinationFunctionName, JitsuFunction> = {
   "builtin.destination.bulker": BulkerDestination as JitsuFunction,
@@ -38,6 +39,7 @@ const builtinDestinations: Record<BuiltinDestinationFunctionName, JitsuFunction>
   "builtin.destination.hubspot": HubspotDestination as JitsuFunction,
   "builtin.destination.salesforce": SalesforceDestination as JitsuFunction,
   "builtin.destination.statsig": StatsigDestination as JitsuFunction,
+  "builtin.destination.salesflow-attribution": SalesflowAttributionDestination as JitsuFunction,
   "builtin.destination.devnull": () => undefined,
   "builtin.destination.tag": () => undefined,
   "builtin.destination.gtm": () => undefined,
@@ -71,4 +73,5 @@ export * as webhookDestination from "./functions/webhook-destination";
 export * as posthogDestination from "./functions/posthog-destination";
 export * as mongodbDestination from "./functions/mongodb-destination";
 export * as statsigDestination from "./functions/statsig-destination";
+export * as salesflowAttributionDestination from "./functions/salesflow-attribution-destination";
 export * from "@jitsu/core-functions-lib";

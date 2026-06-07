@@ -1,0 +1,23 @@
+{
+  "name": "@salesflow/attribution-core",
+  "version": "0.1.0",
+  "description": "Salesflow Attribution — event mapping, types, and ingest logic",
+  "license": "MIT",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf ./.turbo"
+  },
+  "dependencies": {
+    "@jitsu/protocols": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@jitsu/common-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

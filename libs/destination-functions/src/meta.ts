@@ -51,6 +51,18 @@ export const WebhookDestinationConfig = z.object({
 
 export type WebhookDestinationConfig = z.infer<typeof WebhookDestinationConfig>;
 
+export const SalesflowAttributionDestinationConfig = z.object({
+  ingestUrl: z.string().url().describe("Salesflow Attribution app URL (e.g. https://attribution.example.com)"),
+  apiKey: z.string().describe("Salesflow ingest API key (SALESFLOW_INGEST_API_KEY)"),
+  orgId: z.string().describe("Clerk organization ID for this workspace"),
+});
+
+export type SalesflowAttributionDestinationConfig = z.infer<typeof SalesflowAttributionDestinationConfig>;
+
+export const SalesflowAttributionDestinationConfigUi = {
+  apiKey: { password: true },
+};
+
 const MixpanelServiceAccountDocumentation =
   'See <a href="https://developer.mixpanel.com/reference/service-accounts">how to create service account</a>';
 
