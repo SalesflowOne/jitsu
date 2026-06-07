@@ -1,0 +1,38 @@
+{
+  "name": "salesflow-attribution",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx ../../dev-scripts/src/bin/run-app.ts salesflow-attribution next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf ./.next ./.turbo"
+  },
+  "dependencies": {
+    "@salesflow/attribution-core": "workspace:*",
+    "classnames": "^2.3.1",
+    "lucide-react": "^0.447.0",
+    "next": "^16.2.6",
+    "pg": "^8.18.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "recharts": "^2.10.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@jitsu/common-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "^8.16.0",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "autoprefixer": "^10.4.20",
+    "eslint": "catalog:",
+    "eslint-config-next": "^16.2.6",
+    "postcss": "^8.5.10",
+    "tailwindcss": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}
