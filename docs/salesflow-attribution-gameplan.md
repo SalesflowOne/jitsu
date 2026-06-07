@@ -400,32 +400,37 @@ See [ad-platform-roadmap.md](./ad-platform-roadmap.md).
 - [x] Living gameplan document (`docs/salesflow-attribution-gameplan.md`)
 - [x] Supporting documentation (7 docs)
 - [x] Supabase analytics schema migration
-- [x] Attribution SQL functions (first/last/linear + dashboard views)
+- [x] Attribution SQL functions (first/last/linear/u_shaped/time_decay/position_based)
+- [x] Dashboard views: ROAS, CPL, CPA, lead journey, model comparison
 - [x] Seed/demo data migration
-- [x] Core lib: event mapper + types (`libs/salesflow-attribution`)
-- [x] Webapp scaffold: landing page + dashboard pages
-- [x] Ingest API endpoint
+- [x] Core lib: event mapper + types + CSV import
+- [x] Webapp: landing page + dashboard pages
+- [x] Ingest API with org_id + jitsu_workspace_id resolution
+- [x] Clerk auth wiring (optional — works without keys in dev)
+- [x] Jitsu destination: `builtin.destination.salesflow-attribution`
+- [x] CSV import UI + API (ad spend + conversions)
+- [x] Stripe webhook for payment_completed
+- [x] Integrations API + Jitsu workspace mapping UI
+- [x] Migration apply script: `scripts/apply-salesflow-migrations.sh`
+- [x] Unit tests: 5 passing (mapper + CSV)
 
 ### In Progress
 
-- [ ] Clerk auth wiring in webapp (env-gated; works without Clerk in dev)
-- [ ] Connect dashboard to Supabase queries
-- [ ] Jitsu rotor destination function
+- [ ] Apply migrations to production Supabase project (needs credentials)
 
 ### Blocked
 
-- [ ] Production Supabase project credentials (needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
-- [ ] Clerk application credentials (needs `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`)
-- [ ] Jitsu workspace → org_id mapping configuration
+- [ ] Production Supabase project credentials (needs `SUPABASE_DATABASE_URL`)
+- [ ] Clerk application credentials (optional for dev)
+- [ ] Stripe webhook registration in Stripe dashboard
 
 ### Next Steps
 
-1. Apply Supabase migrations to dev/staging project
-2. Configure Clerk org JWT claims for `org_id` in RLS
-3. Wire dashboard API routes to Supabase client
-4. Deploy Jitsu rotor function to forward events to ingest API
-5. Add CSV import UI for ad spend
-6. E2E test with seed data
+1. Set env vars and run `./scripts/apply-salesflow-migrations.sh`
+2. Configure Clerk org and enable Organizations in Clerk dashboard
+3. Add Salesflow destination in Jitsu Console per workspace
+4. Register Stripe webhook → `/api/webhooks/stripe`
+5. Google/Meta Ads API integrations (Phase 7)
 
 ---
 
@@ -545,10 +550,26 @@ See [ad-platform-roadmap.md](./ad-platform-roadmap.md).
 **Status:** UI scaffold complete; needs Supabase connection  
 **Next:** Connect API routes to live data
 
-### Phase 6 — Landing Page (2026-06-07)
+### Phase 7 — Full stack completion (2026-06-07)
 
 **What changed:**
-- Premium SaaS landing page at `/` with all planned sections
+- Clerk auth (optional): sign-in/sign-up, org-scoped dashboard, UserButton
+- Jitsu destination: `builtin.destination.salesflow-attribution`
+- CSV import: ad spend + conversions (`/dashboard/import`)
+- Stripe webhook: `POST /api/webhooks/stripe`
+- Advanced attribution: u_shaped_v1, time_decay_v1, position_based_v1
+- Integrations API + Jitsu workspace mapping in Setup
+- org_id resolution from jitsu_workspace_id via `analytics.integrations`
+- Migration script + migration 004
 
-**Status:** Complete  
-**Next:** Polish and connect CTAs to Clerk signup
+**Files created/modified:**
+- `libs/destination-functions/src/functions/salesflow-attribution-destination.ts`
+- `supabase/migrations/20250607000004_attribution_advanced_models.sql`
+- `libs/salesflow-attribution/src/import/csv.ts`
+- `webapps/salesflow-attribution/pages/dashboard/import.tsx`
+- `webapps/salesflow-attribution/pages/api/import/*`, `api/webhooks/stripe.ts`, `api/integrations/*`
+- `webapps/salesflow-attribution/lib/auth-server.ts`, `lib/clerk-config.ts`
+- `scripts/apply-salesflow-migrations.sh`
+
+**Status:** Complete (pending live Supabase/Clerk/Stripe credentials)
+**Next:** Deploy with env vars; connect ad platform APIs

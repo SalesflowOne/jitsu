@@ -11,9 +11,19 @@ export function parseIngestPayload(body: unknown): IngestPayload {
   return IngestPayloadSchema.parse(body);
 }
 
-export function processIngestPayload(payload: IngestPayload): IngestResult {
+export function processIngestPayload(payload: IngestPayload, orgId: string): IngestResult {
   const jitsuEvent = payload.event as AnalyticsServerEvent;
-  return mapJitsuEvent(payload.org_id, jitsuEvent, payload.source);
+  return mapJitsuEvent(orgId, jitsuEvent, payload.source);
+}
+
+export async function resolveOrgId(db: DbClient, orgId?: string, jitsuWorkspaceId?: string): Promise<string> {
+  if (orgId) return orgId;
+  if (jitsuWorkspaceId) {
+    const rows = await db.query(`SELECT analytics.resolve_org_id($1, $2) as org_id`, ["", jitsuWorkspaceId]);
+    const resolved = rows.rows[0]?.org_id as string | undefined;
+    if (resolved) return resolved;
+  }
+  throw new Error("org_id is required (or provide jitsu_workspace_id with a configured integration)");
 }
 
 /**
@@ -183,4 +193,80 @@ export async function persistIngestResult(
   }
 
   return { event_id: eventId, lead_id: leadId, touchpoint_id: touchpointId, conversion_id: conversionId };
+}
+
+export async function persistAdSpendRows(db: DbClient, rows: import("../import/csv").AdSpendRow[]): Promise<number> {
+  let count = 0;
+  for (const row of rows) {
+    await db.query(
+      `INSERT INTO analytics.ad_spend_daily (
+        org_id, platform, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name,
+        spend, impressions, clicks, date
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      ON CONFLICT (org_id, platform, campaign_id, ad_id, date) DO UPDATE SET
+        spend = EXCLUDED.spend,
+        impressions = EXCLUDED.impressions,
+        clicks = EXCLUDED.clicks,
+        campaign_name = coalesce(EXCLUDED.campaign_name, analytics.ad_spend_daily.campaign_name)`,
+      [
+        row.org_id,
+        row.platform,
+        row.campaign_id ?? null,
+        row.campaign_name ?? null,
+        row.adset_id ?? null,
+        row.adset_name ?? null,
+        row.ad_id ?? null,
+        row.ad_name ?? null,
+        row.spend,
+        row.impressions,
+        row.clicks,
+        row.date,
+      ]
+    );
+    count++;
+  }
+  return count;
+}
+
+export async function persistConversionCsvRows(
+  db: DbClient,
+  rows: import("../import/csv").ConversionCsvRow[]
+): Promise<number> {
+  let count = 0;
+  for (const row of rows) {
+    let leadId: string | undefined;
+    if (row.email) {
+      const existing = await db.query(`SELECT id FROM analytics.leads WHERE org_id = $1 AND email = $2 LIMIT 1`, [
+        row.org_id,
+        row.email,
+      ]);
+      leadId = existing.rows[0]?.id as string | undefined;
+      if (!leadId) {
+        const inserted = await db.query(
+          `INSERT INTO analytics.leads (org_id, email, status, first_seen_at)
+           VALUES ($1, $2, 'converted', now()) RETURNING id`,
+          [row.org_id, row.email]
+        );
+        leadId = inserted.rows[0]?.id as string;
+      }
+    }
+    await db.query(
+      `INSERT INTO analytics.conversions (
+        org_id, lead_id, conversion_type, revenue_amount, currency, status, payment_id, crm_deal_id, occurred_at
+      ) VALUES ($1,$2,$3,$4,$5,'completed',$6,$7,$8)
+      ON CONFLICT (org_id, payment_id) WHERE payment_id IS NOT NULL DO NOTHING`,
+      [
+        row.org_id,
+        leadId ?? null,
+        row.conversion_type,
+        row.revenue_amount,
+        row.currency,
+        row.payment_id ?? null,
+        row.crm_deal_id ?? null,
+        row.occurred_at,
+      ]
+    );
+    count++;
+  }
+  return count;
 }

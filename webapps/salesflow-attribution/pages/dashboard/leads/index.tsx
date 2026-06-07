@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { DashboardLayout, DemoBanner } from "@/components/DashboardLayout";
 import { DEMO_LEADS } from "@/lib/demo-data";
-import { dbQuery, getOrgId } from "@/lib/db";
+import { dbQuery } from "@/lib/db";
+import { withDashboardAuth } from "@/lib/auth-server";
 import type { GetServerSideProps } from "next";
 
 type Lead = {
@@ -63,21 +64,20 @@ export default function LeadsPage({ leads, live }: Props) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const orgId = getOrgId();
-  const rows = await dbQuery<{
-    lead_id: string;
-    email: string;
-    name: string;
-    status: string;
-    first_touch_source: string;
-    last_touch_source: string;
-    total_revenue: string;
-  }>(`SELECT * FROM analytics.v_lead_journey WHERE org_id = $1 ORDER BY first_seen_at DESC LIMIT 50`, [orgId]);
+export const getServerSideProps: GetServerSideProps = async ctx => {
+  return withDashboardAuth(ctx, async auth => {
+    const rows = await dbQuery<{
+      lead_id: string;
+      email: string;
+      name: string;
+      status: string;
+      first_touch_source: string;
+      last_touch_source: string;
+      total_revenue: string;
+    }>(`SELECT * FROM analytics.v_lead_journey WHERE org_id = $1 ORDER BY first_seen_at DESC LIMIT 50`, [auth.orgId]);
 
-  if (rows.length > 0) {
-    return {
-      props: {
+    if (rows.length > 0) {
+      return {
         live: true,
         leads: rows.map(r => ({
           id: r.lead_id,
@@ -88,9 +88,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
           last_touch: r.last_touch_source,
           revenue: Number(r.total_revenue),
         })),
-      },
-    };
-  }
+      };
+    }
 
-  return { props: { leads: DEMO_LEADS, live: false } };
+    return { leads: DEMO_LEADS, live: false };
+  });
 };

@@ -88,8 +88,9 @@ export type IngestResult = {
 };
 
 export const IngestPayloadSchema = z.object({
-  org_id: z.string(),
-  source: z.enum(["jitsu", "api", "webhook", "csv"]).default("api"),
+  org_id: z.string().optional(),
+  jitsu_workspace_id: z.string().optional(),
+  source: z.enum(["jitsu", "api", "webhook", "csv", "stripe"]).default("api"),
   event: z.record(z.unknown()),
 });
 

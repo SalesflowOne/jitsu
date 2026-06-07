@@ -1,11 +1,13 @@
 import { DashboardLayout, DemoBanner, MetricCard } from "@/components/DashboardLayout";
 import { DEMO_OVERVIEW } from "@/lib/demo-data";
-import { dbQuery, getOrgId } from "@/lib/db";
+import { dbQuery } from "@/lib/db";
+import { withDashboardAuth, type DashboardAuth } from "@/lib/auth-server";
 import type { GetServerSideProps } from "next";
 
 type Props = {
   metrics: typeof DEMO_OVERVIEW;
   live: boolean;
+  auth: DashboardAuth;
 };
 
 export default function DashboardOverview({ metrics, live }: Props) {
@@ -33,25 +35,24 @@ export default function DashboardOverview({ metrics, live }: Props) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const orgId = getOrgId();
-  const rows = await dbQuery<{
-    total_leads: string;
-    booked_appointments: string;
-    total_conversions: string;
-    total_revenue: string;
-    total_spend: string;
-    cost_per_lead: string;
-    cost_per_conversion: string;
-    lead_to_close_pct: string;
-  }>(`SELECT * FROM analytics.v_cost_metrics WHERE org_id = $1`, [orgId]);
+export const getServerSideProps: GetServerSideProps = async ctx => {
+  return withDashboardAuth(ctx, async auth => {
+    const rows = await dbQuery<{
+      total_leads: string;
+      booked_appointments: string;
+      total_conversions: string;
+      total_revenue: string;
+      total_spend: string;
+      cost_per_lead: string;
+      cost_per_conversion: string;
+      lead_to_close_pct: string;
+    }>(`SELECT * FROM analytics.v_cost_metrics WHERE org_id = $1`, [auth.orgId]);
 
-  if (rows.length > 0) {
-    const r = rows[0];
-    const spend = Number(r.total_spend);
-    const revenue = Number(r.total_revenue);
-    return {
-      props: {
+    if (rows.length > 0) {
+      const r = rows[0];
+      const spend = Number(r.total_spend);
+      const revenue = Number(r.total_revenue);
+      return {
         live: true,
         metrics: {
           total_spend: spend,
@@ -64,9 +65,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
           cost_per_conversion: Number(r.cost_per_conversion) || 0,
           lead_to_close_pct: Number(r.lead_to_close_pct) || 0,
         },
-      },
-    };
-  }
+      };
+    }
 
-  return { props: { metrics: DEMO_OVERVIEW, live: false } };
+    return { metrics: DEMO_OVERVIEW, live: false };
+  });
 };

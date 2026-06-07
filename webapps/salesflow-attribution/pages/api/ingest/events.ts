@@ -1,5 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { parseIngestPayload, persistIngestResult, processIngestPayload } from "@salesflow/attribution-core";
+import {
+  parseIngestPayload,
+  persistIngestResult,
+  processIngestPayload,
+  resolveOrgId,
+} from "@salesflow/attribution-core";
 import { getDb } from "@/lib/db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -18,21 +23,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(503).json({ error: "Database not configured. Set SUPABASE_DATABASE_URL or DATABASE_URL." });
   }
 
+  const dbClient = {
+    query: async (sql: string, params?: unknown[]) => {
+      const r = await db.query(sql, params);
+      return { rows: r.rows as Record<string, unknown>[] };
+    },
+  };
+
   try {
     const payload = parseIngestPayload(req.body);
-    const result = processIngestPayload(payload);
-
-    const dbClient = {
-      query: async (sql: string, params?: unknown[]) => {
-        const r = await db.query(sql, params);
-        return { rows: r.rows as Record<string, unknown>[] };
-      },
-    };
-
+    const orgId = await resolveOrgId(dbClient, payload.org_id, payload.jitsu_workspace_id);
+    const result = processIngestPayload(payload, orgId);
     const ids = await persistIngestResult(dbClient, result);
 
     return res.status(200).json({
       status: "ok",
+      org_id: orgId,
       event_name: result.event.event_name,
       ...ids,
     });

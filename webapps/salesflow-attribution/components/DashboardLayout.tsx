@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { BarChart3, GitBranch, LayoutDashboard, Settings, Users } from "lucide-react";
+import { BarChart3, GitBranch, LayoutDashboard, Settings, Upload, Users } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 import classNames from "classnames";
+import { isClerkEnabled } from "@/lib/clerk-config";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: BarChart3 },
   { href: "/dashboard/attribution", label: "Attribution", icon: GitBranch },
   { href: "/dashboard/leads", label: "Leads", icon: Users },
+  { href: "/dashboard/import", label: "Import", icon: Upload },
   { href: "/dashboard/setup", label: "Setup", icon: Settings },
 ];
 
@@ -49,8 +52,9 @@ export function DashboardLayout({ children, title }: { children: React.ReactNode
       </aside>
 
       <main className="flex-1">
-        <header className="border-b border-gray-200 bg-white px-6 py-4">
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
           <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+          {isClerkEnabled() && <UserButton afterSignOutUrl="/" />}
         </header>
         <div className="p-6">{children}</div>
       </main>

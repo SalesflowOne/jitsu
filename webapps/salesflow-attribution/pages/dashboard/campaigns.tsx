@@ -1,6 +1,7 @@
 import { DashboardLayout, DemoBanner } from "@/components/DashboardLayout";
 import { DEMO_CAMPAIGNS } from "@/lib/demo-data";
-import { dbQuery, getOrgId } from "@/lib/db";
+import { dbQuery } from "@/lib/db";
+import { withDashboardAuth } from "@/lib/auth-server";
 import type { GetServerSideProps } from "next";
 
 type Campaign = {
@@ -52,35 +53,34 @@ export default function CampaignsPage({ campaigns, live }: Props) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const orgId = getOrgId();
-  const rows = await dbQuery<{
-    campaign: string;
-    ad_platform: string;
-    attributed_revenue: string;
-    conversions: string;
-    spend: string;
-    roas: string;
-  }>(
-    `SELECT r.campaign, r.ad_platform, r.attributed_revenue, r.conversions,
-            coalesce(s.total_spend, 0) as spend, v.roas
-     FROM analytics.v_revenue_by_campaign r
-     LEFT JOIN analytics.v_spend_by_campaign s ON s.org_id = r.org_id AND lower(s.campaign) = lower(r.campaign)
-     LEFT JOIN analytics.v_roas_by_campaign v ON v.org_id = r.org_id AND v.campaign = r.campaign AND v.model_name = r.model_name
-     WHERE r.org_id = $1 AND r.model_name = 'last_touch_v1'
-     ORDER BY r.attributed_revenue DESC`,
-    [orgId]
-  );
-
-  if (rows.length > 0) {
-    const leadCounts = await dbQuery<{ utm_campaign: string; cnt: string }>(
-      `SELECT utm_campaign, count(*) as cnt FROM analytics.leads WHERE org_id = $1 GROUP BY utm_campaign`,
-      [orgId]
+export const getServerSideProps: GetServerSideProps = async ctx => {
+  return withDashboardAuth(ctx, async auth => {
+    const rows = await dbQuery<{
+      campaign: string;
+      ad_platform: string;
+      attributed_revenue: string;
+      conversions: string;
+      spend: string;
+      roas: string;
+    }>(
+      `SELECT r.campaign, r.ad_platform, r.attributed_revenue, r.conversions,
+              coalesce(s.total_spend, 0) as spend, v.roas
+       FROM analytics.v_revenue_by_campaign r
+       LEFT JOIN analytics.v_spend_by_campaign s ON s.org_id = r.org_id AND lower(s.campaign) = lower(r.campaign)
+       LEFT JOIN analytics.v_roas_by_campaign v ON v.org_id = r.org_id AND v.campaign = r.campaign AND v.model_name = r.model_name
+       WHERE r.org_id = $1 AND r.model_name = 'last_touch_v1'
+       ORDER BY r.attributed_revenue DESC`,
+      [auth.orgId]
     );
-    const leadMap = Object.fromEntries(leadCounts.map(r => [r.utm_campaign, Number(r.cnt)]));
 
-    return {
-      props: {
+    if (rows.length > 0) {
+      const leadCounts = await dbQuery<{ utm_campaign: string; cnt: string }>(
+        `SELECT utm_campaign, count(*) as cnt FROM analytics.leads WHERE org_id = $1 GROUP BY utm_campaign`,
+        [auth.orgId]
+      );
+      const leadMap = Object.fromEntries(leadCounts.map(r => [r.utm_campaign, Number(r.cnt)]));
+
+      return {
         live: true,
         campaigns: rows.map(r => ({
           campaign: r.campaign,
@@ -91,9 +91,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
           revenue: Number(r.attributed_revenue),
           roas: r.roas ? Number(r.roas) : null,
         })),
-      },
-    };
-  }
+      };
+    }
 
-  return { props: { campaigns: DEMO_CAMPAIGNS, live: false } };
+    return { campaigns: DEMO_CAMPAIGNS, live: false };
+  });
 };

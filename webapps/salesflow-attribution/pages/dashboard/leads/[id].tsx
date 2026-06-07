@@ -1,5 +1,6 @@
 import { DashboardLayout, DemoBanner } from "@/components/DashboardLayout";
-import { dbQuery, getOrgId } from "@/lib/db";
+import { dbQuery } from "@/lib/db";
+import { withDashboardAuth } from "@/lib/auth-server";
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
 
@@ -81,34 +82,29 @@ export default function LeadDetailPage({ lead, touchpoints, conversions, live }:
   );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) => {
-  const orgId = getOrgId();
-  const leadId = params?.id as string;
+export const getServerSideProps: GetServerSideProps = async ctx => {
+  return withDashboardAuth(ctx, async auth => {
+    const leadId = ctx.params?.id as string;
+    const rows = await dbQuery<{
+      email: string;
+      name: string;
+      status: string;
+      total_revenue: string;
+      touchpoints: Touchpoint[];
+      conversions: { type: string; revenue: number; occurred_at: string }[];
+    }>(`SELECT * FROM analytics.v_lead_journey WHERE org_id = $1 AND lead_id = $2`, [auth.orgId, leadId]);
 
-  const rows = await dbQuery<{
-    email: string;
-    name: string;
-    status: string;
-    total_revenue: string;
-    touchpoints: Touchpoint[];
-    conversions: { type: string; revenue: number; occurred_at: string }[];
-  }>(`SELECT * FROM analytics.v_lead_journey WHERE org_id = $1 AND lead_id = $2`, [orgId, leadId]);
-
-  if (rows.length > 0) {
-    const r = rows[0];
-    return {
-      props: {
+    if (rows.length > 0) {
+      const r = rows[0];
+      return {
         live: true,
         lead: { name: r.name ?? "Unknown", email: r.email ?? "", status: r.status, revenue: Number(r.total_revenue) },
         touchpoints: r.touchpoints ?? [],
         conversions: (r.conversions ?? []).map(c => ({ ...c, revenue: Number(c.revenue) })),
-      },
-    };
-  }
+      };
+    }
 
-  // Demo fallback
-  return {
-    props: {
+    return {
       live: false,
       lead: { name: "Demo Lead 1", email: "lead1@demo.school.edu", status: "converted", revenue: 8500 },
       touchpoints: [
@@ -128,6 +124,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params }) 
         },
       ],
       conversions: [{ type: "payment_completed", revenue: 8500, occurred_at: "2026-05-17T16:00:00Z" }],
-    },
-  };
+    };
+  });
 };
